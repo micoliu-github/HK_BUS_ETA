@@ -1,0 +1,5 @@
+{
+  "name": "HK Bus ETA",
+  "description": "Real-time bus arrival times for Hong Kong (KMB/LWB)",
+  "requestFramePermissions": ["geolocation"]
+}

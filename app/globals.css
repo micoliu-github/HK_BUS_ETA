@@ -1,1 +1,9 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+@theme {
+  @keyframes scan {
+    from { transform: translateY(-100%); }
+    to { transform: translateY(100%); }
+  }
+}

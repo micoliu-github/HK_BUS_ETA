@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Search, MapPin, Navigation, Bus, Clock, RefreshCw, Star } from 'lucide-react';
+import { Search, MapPin, Navigation, Bus, Clock, RefreshCw, Star, ChevronRight, Map as MapIcon } from 'lucide-react';
 import { getRoute, getRouteStops, getStopETA, getRouteETA, getAllStopETAs } from '@/lib/api';
 import { Route, BusStop, ETA, Coordinates, RouteETAItem } from '@/lib/types';
 import { getDistance } from 'geolib';
@@ -388,33 +388,69 @@ export default function BusApp() {
   };
 
   return (
-    <div className="max-w-md mx-auto min-h-screen bg-gray-50 flex flex-col font-sans">
+    <div className="max-w-md mx-auto min-h-screen bg-slate-950 flex flex-col font-sans selection:bg-blue-500/30 text-slate-200">
       {/* Header */}
-      <header className="bg-slate-800 text-white p-4 shadow-md sticky top-0 z-10">
-        <h1 className="text-xl font-bold flex items-center gap-2">
-          <Bus className="w-6 h-6" />
-          HK Bus ETA
-        </h1>
+      <header className="bg-slate-900/50 backdrop-blur-xl text-white p-5 sticky top-0 z-30 border-b border-white/10 overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-blue-500/50 to-transparent animate-pulse" />
+        <div className="flex items-center justify-between relative z-10">
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-600/20 relative overflow-hidden group">
+              <div className="absolute inset-0 bg-white/20 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+              <Bus className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex flex-col">
+              <h1 className="text-lg font-black tracking-tighter leading-none">
+                HK BUS <span className="text-blue-500">ETA</span>
+              </h1>
+              <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest mt-1">Real-time Telemetry v2.4</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="hidden sm:flex flex-col items-end">
+              <span className="text-[8px] font-mono text-slate-600 uppercase tracking-widest">System Status</span>
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                <span className="text-[10px] font-mono text-emerald-500 font-bold">STABLE</span>
+              </div>
+            </div>
+            <div className="h-8 w-px bg-white/5" />
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+              <span className="text-[10px] font-mono text-slate-400 font-bold tracking-widest">LIVE</span>
+            </div>
+          </div>
+        </div>
       </header>
 
-      <main className="flex-1 p-4 space-y-6">
+      <main className="flex-1 p-4 space-y-8 pb-24 relative">
+        {/* Background Grid Pattern */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+
         {/* Search */}
-        <form onSubmit={handleSearch} className="relative">
-          <input
-            type="text"
-            value={routeInput}
-            onChange={(e) => setRouteInput(e.target.value)}
-            placeholder="輸入路線號碼 (e.g. 1A, 968, E33)"
-            className="w-full p-4 pr-12 rounded-xl border border-gray-200 shadow-sm text-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
-          />
-          <button
-            type="submit"
-            className="absolute right-2 top-2 bottom-2 bg-slate-800 text-white p-2 rounded-lg hover:bg-slate-700 transition-colors"
-            disabled={loading}
-          >
-            {loading ? <RefreshCw className="w-6 h-6 animate-spin" /> : <Search className="w-6 h-6" />}
-          </button>
-        </form>
+        <motion.form 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          onSubmit={handleSearch} 
+          className="relative group z-10"
+        >
+          <div className="absolute inset-0 bg-blue-600/20 blur-xl group-focus-within:bg-blue-600/30 transition-all rounded-2xl" />
+          <div className="relative flex items-center">
+            <input
+              type="text"
+              value={routeInput}
+              onChange={(e) => setRouteInput(e.target.value)}
+              placeholder="ENTER ROUTE NUMBER..."
+              className="w-full p-5 pr-16 rounded-2xl border border-white/10 bg-slate-900/80 backdrop-blur-md text-white font-mono placeholder:text-slate-600 focus:outline-none focus:border-blue-500/50 transition-all shadow-2xl"
+            />
+            <button
+              type="submit"
+              className="absolute right-2 p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-500 transition-all active:scale-90 flex items-center justify-center shadow-lg shadow-blue-600/40"
+              disabled={loading}
+            >
+              {loading ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
+            </button>
+          </div>
+        </motion.form>
 
         {error && (
           <div className="p-4 bg-red-50 text-red-600 rounded-xl border border-red-100">
@@ -423,300 +459,482 @@ export default function BusApp() {
         )}
 
         {/* Favorite Routes */}
-        {!selectedRoute && routes.length === 0 && !loading && !error && favoriteRoutes.length > 0 && (
-          <div className="space-y-3">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                收藏路線 (Favorites)
-            </h2>
-            <div className="grid gap-3">
-              {favoriteRoutes.map((route, index) => (
-                <motion.button
-                  key={`fav-${route.company}-${route.route}-${route.bound}-${route.service_type}-${index}`}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => handleSelectRoute(route)}
-                  className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 text-left hover:border-yellow-200 transition-colors relative group"
-                >
-                  <div className="absolute top-4 right-4 z-10" onClick={(e) => toggleFavorite(route, e)}>
-                    <Star className="w-6 h-6 fill-yellow-400 text-yellow-400" />
-                  </div>
-                  <div className="flex justify-between items-center pr-8">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        {route.companies && route.companies.length > 0 ? (
-                            route.companies.map(co => (
-                                <span key={co} className={`text-xs font-bold text-white px-2 py-0.5 rounded ${getCompanyColor(co)}`}>
-                                    {co}
-                                </span>
-                            ))
-                        ) : (
-                            <span className={`text-xs font-bold text-white px-2 py-0.5 rounded ${getCompanyColor(route.company)}`}>
-                                {route.company}
-                            </span>
-                        )}
-                        <div className="text-2xl font-bold text-gray-900">{route.route}</div>
-                      </div>
-                      <div className="text-gray-600">往 {route.dest_tc}</div>
-                      <div className="text-xs text-gray-400 mt-1">To {route.dest_en}</div>
-                    </div>
-                  </div>
-                </motion.button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Route Selection */}
-        {!selectedRoute && routes.length > 0 && (
-          <div className="space-y-3">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">選擇方向 (Select Direction)</h2>
-            <div className="grid gap-3">
-              {routes.map((route, index) => (
-                <motion.button
-                  key={`${route.company}-${route.route}-${route.bound}-${route.service_type}-${index}`}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => handleSelectRoute(route)}
-                  className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 text-left hover:border-slate-200 transition-colors relative"
-                >
-                  <div className="absolute top-4 right-12 z-10" onClick={(e) => toggleFavorite(route, e)}>
-                    <Star className={`w-6 h-6 ${isFavorite(route) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300 hover:text-yellow-400'}`} />
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        {route.companies && route.companies.length > 0 ? (
-                            route.companies.map(co => (
-                                <span key={co} className={`text-xs font-bold text-white px-2 py-0.5 rounded ${getCompanyColor(co)}`}>
-                                    {co}
-                                </span>
-                            ))
-                        ) : (
-                            <span className={`text-xs font-bold text-white px-2 py-0.5 rounded ${getCompanyColor(route.company)}`}>
-                                {route.company}
-                            </span>
-                        )}
-                        <div className="text-2xl font-bold text-gray-900">{route.route}</div>
-                      </div>
-                      <div className="text-gray-600">往 {route.dest_tc}</div>
-                      <div className="text-xs text-gray-400 mt-1">To {route.dest_en}</div>
-                    </div>
-                    <Navigation className="w-5 h-5 text-gray-400" />
-                  </div>
-                  {route.service_type !== '1' && (
-                    <div className="mt-2 inline-block px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
-                      特別班次 (Special)
-                    </div>
-                  )}
-                </motion.button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Selected Route Info & Nearest Stop */}
-        {selectedRoute && (
-          <div className="space-y-6">
-            <button
-              onClick={() => {
-                setSelectedRoute(null);
-                setStops([]);
-                setNearestStopETA([]);
-                setOtherBusesETA([]);
-              }}
-              className="text-sm text-gray-500 flex items-center gap-1 hover:text-gray-900"
+        <AnimatePresence>
+          {!selectedRoute && routes.length === 0 && !loading && !error && favoriteRoutes.length > 0 && (
+            <motion.div 
+              key="favorite-routes"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="space-y-4 overflow-hidden z-10 relative"
             >
-              ← 返回路線選擇 (Back)
-            </button>
-
-            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-              <div className="flex justify-between items-center">
-                  <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                    <div className="flex gap-1">
-                        {selectedRoute.companies && selectedRoute.companies.length > 0 ? (
-                            selectedRoute.companies.map(co => (
-                                <span key={co} className={`${getCompanyColor(co)} text-white px-2 py-1 rounded-md text-lg`}>{selectedRoute.route}</span>
-                            ))
-                        ) : (
-                            <span className={`${getCompanyColor(selectedRoute.company)} text-white px-2 py-1 rounded-md text-lg`}>{selectedRoute.route}</span>
-                        )}
-                    </div>
-                    <span>往 {selectedRoute.dest_tc}</span>
-                  </h2>
-                  <button onClick={(e) => toggleFavorite(selectedRoute, e)} className="p-2">
-                    <Star className={`w-6 h-6 ${isFavorite(selectedRoute) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300 hover:text-yellow-400'}`} />
-                  </button>
+              <div className="flex items-center justify-between px-1">
+                <h2 className="text-[10px] font-mono font-black text-slate-500 uppercase tracking-[0.3em] flex items-center gap-2">
+                    <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                    常用路線 (FAVORITE ROUTES)
+                </h2>
+                <div className="h-px flex-1 bg-white/5 ml-4" />
               </div>
-            </div>
-
-            {loadingStops ? (
-              <div className="flex justify-center py-8">
-                <RefreshCw className="w-8 h-8 text-gray-400 animate-spin" />
-              </div>
-            ) : (
-              <>
-                {/* Nearest Stop Card */}
-                {nearestStop ? (
+              <div className="grid gap-3">
+                {favoriteRoutes.map((route, index) => (
                   <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-slate-900 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden"
+                    key={`fav-${route.company}-${route.route}-${route.bound}-${route.service_type}-${index}`}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => handleSelectRoute(route)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSelectRoute(route)}
+                    className="bg-slate-900/50 backdrop-blur-sm p-5 rounded-2xl border border-white/5 text-left hover:border-amber-500/50 transition-all relative group overflow-hidden cursor-pointer"
                   >
-                    <div className="absolute top-0 right-0 p-4 opacity-10">
-                      <MapPin className="w-32 h-32" />
-                    </div>
-                    
-                    <div className="relative z-10">
-                      <div className="flex items-center gap-2 text-slate-400 mb-2">
-                        <MapPin className="w-5 h-5" />
-                        <span className="font-bold tracking-wide uppercase text-xs">最近車站 (Nearest Stop)</span>
-                      </div>
-                      
-                      <h3 className="text-2xl font-bold mb-1">{nearestStop.name_tc}</h3>
-                      <p className="text-slate-400 text-sm mb-6">{nearestStop.name_en}</p>
-
-                      <div className="space-y-4">
-                        {loadingETA ? (
-                          <div className="animate-pulse h-8 bg-slate-700 rounded w-1/2"></div>
-                        ) : nearestStopETA.length > 0 ? (
-                          nearestStopETA.map((eta, idx) => (
-                            <div key={idx} className="flex justify-between items-end border-b border-slate-700 pb-2 last:border-0">
-                              <div>
-                                <div className="text-3xl font-mono font-bold text-white flex items-baseline gap-2">
-                                  {formatTime(eta.eta)}
-                                  <span className="text-3xl font-normal text-gray-400">
-                                    {getCompanyName(eta.co)}
-                                  </span>
-                                </div>
-                                <div className="text-xs text-slate-500 mt-1">
-                                  {eta.eta ? new Date(eta.eta).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}
-                                </div>
-                              </div>
-                              {eta.rmk_tc && (
-                                <div className="text-sm text-yellow-400">{eta.rmk_tc}</div>
-                              )}
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-slate-400">暫時沒有班次資料 (No ETA data)</div>
-                        )}
-                      </div>
-
-                      {/* Other Buses Section */}
-                      {otherBusesETA.length > 0 && (
-                        <div className="mt-8 pt-6 border-t border-slate-700">
-                          <div className="flex items-center gap-2 text-slate-400 mb-4">
-                            <Bus className="w-4 h-4" />
-                            <span className="font-bold tracking-wide uppercase text-[10px]">其他路線 (Other Routes)</span>
+                    <div className="absolute top-0 left-0 w-1 h-full bg-amber-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <button 
+                      className="absolute top-5 right-5 z-10 p-2 hover:bg-white/10 rounded-full transition-colors" 
+                      onClick={(e) => toggleFavorite(route, e)}
+                    >
+                      <Star className="w-5 h-5 fill-amber-500 text-amber-500" />
+                    </button>
+                    <div className="flex justify-between items-center pr-8">
+                      <div>
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="flex gap-1">
+                            {route.companies && route.companies.length > 0 ? (
+                                route.companies.map(co => (
+                                    <span key={co} className={`text-[9px] font-mono font-black text-white px-2 py-0.5 rounded ${getCompanyColor(co)}`}>
+                                        {co}
+                                    </span>
+                                ))
+                            ) : (
+                                <span className={`text-[9px] font-mono font-black text-white px-2 py-0.5 rounded ${getCompanyColor(route.company)}`}>
+                                    {route.company}
+                                </span>
+                            )}
                           </div>
-                          <div className="grid grid-cols-2 gap-3">
-                            {otherBusesETA.slice(0, 6).map((eta, idx) => (
-                              <div key={idx} className="bg-white/5 rounded-lg p-3 border border-white/10">
-                                <div className="flex items-center justify-between mb-1">
-                                  <span className="text-lg font-bold text-white">{eta.route}</span>
-                                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold text-white ${getCompanyColor(eta.co)}`}>
-                                    {eta.co}
-                                  </span>
-                                </div>
-                                <div className="text-blue-400 font-mono font-bold text-sm">
-                                  {formatTime(eta.eta)}
-                                </div>
-                                <div className="text-[10px] text-slate-500 truncate">
-                                  往 {eta.dest_tc || '---'}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
+                          <div className="text-3xl font-mono font-black text-white tracking-tighter leading-none">{route.route}</div>
                         </div>
-                      )}
-
-                      <button 
-                        onClick={() => fetchETA(nearestStop!)}
-                        className="mt-6 w-full py-3 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center gap-2 transition-colors text-sm font-medium"
-                      >
-                        <RefreshCw className={`w-4 h-4 ${loadingETA ? 'animate-spin' : ''}`} />
-                        更新時間 (Refresh)
-                      </button>
+                        <div className="text-slate-200 font-bold text-lg">往 {route.dest_tc}</div>
+                        <div className="text-[10px] font-mono text-slate-500 mt-1 uppercase tracking-wider">TO {route.dest_en}</div>
+                      </div>
                     </div>
                   </motion.div>
-                ) : (
-                  !userLocation && (
-                    <div className="p-4 bg-yellow-50 text-yellow-800 rounded-xl text-sm">
-                      請允許定位權限以顯示最近車站 (Please enable location)
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Route Selection */}
+        <AnimatePresence>
+          {!selectedRoute && routes.length > 0 && (
+            <motion.div 
+              key="route-selection"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="space-y-6 z-10 relative"
+            >
+              <button
+                onClick={() => {
+                  setRoutes([]);
+                  setRouteInput('');
+                  setError('');
+                }}
+                className="text-[10px] font-mono font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 hover:text-white transition-colors"
+              >
+                <ChevronRight className="w-3 h-3 rotate-180" />
+                取消搜尋 (CANCEL SEARCH)
+              </button>
+              
+              <div className="flex items-center justify-between px-1">
+                <h2 className="text-[10px] font-mono font-black text-slate-500 uppercase tracking-[0.3em]">選擇方向 (SELECT DIRECTION)</h2>
+                <div className="h-px flex-1 bg-white/5 ml-4" />
+              </div>
+
+              <div className="grid gap-3">
+                {routes.map((route, index) => (
+                  <motion.div
+                    key={`${route.company}-${route.route}-${route.bound}-${route.service_type}-${index}`}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => handleSelectRoute(route)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSelectRoute(route)}
+                    className="bg-slate-900/50 backdrop-blur-sm p-6 rounded-2xl border border-white/5 text-left hover:border-blue-500/50 transition-all relative group overflow-hidden cursor-pointer"
+                  >
+                    <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <button 
+                      className="absolute top-6 right-6 z-10 p-2 hover:bg-white/10 rounded-full transition-colors" 
+                      onClick={(e) => toggleFavorite(route, e)}
+                    >
+                      <Star className={`w-5 h-5 ${isFavorite(route) ? 'fill-amber-500 text-amber-500' : 'text-slate-700 hover:text-amber-500'}`} />
+                    </button>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="flex gap-1">
+                            {route.companies && route.companies.length > 0 ? (
+                                route.companies.map(co => (
+                                    <span key={co} className={`text-[9px] font-mono font-black text-white px-2 py-0.5 rounded ${getCompanyColor(co)}`}>
+                                        {co}
+                                    </span>
+                                ))
+                            ) : (
+                                <span className={`text-[9px] font-mono font-black text-white px-2 py-0.5 rounded ${getCompanyColor(route.company)}`}>
+                                    {route.company}
+                                </span>
+                            )}
+                          </div>
+                          <div className="text-3xl font-mono font-black text-white tracking-tighter leading-none">{route.route}</div>
+                        </div>
+                        <div className="text-slate-200 font-bold text-lg">往 {route.dest_tc}</div>
+                        <div className="text-[10px] font-mono text-slate-500 mt-1 uppercase tracking-wider">TO {route.dest_en}</div>
+                      </div>
+                      <div className="bg-white/5 p-3 rounded-xl group-hover:bg-blue-600/20 transition-colors">
+                        <Navigation className="w-5 h-5 text-slate-500 group-hover:text-blue-400" />
+                      </div>
                     </div>
-                  )
-                )}
+                    {route.service_type !== '1' && (
+                      <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 bg-amber-500/10 text-amber-500 text-[9px] font-mono font-black rounded border border-amber-500/20 uppercase">
+                        <Clock className="w-3 h-3" />
+                        特別班次 (SPECIAL SERVICE)
+                      </div>
+                    )}
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-                {/* All Stops List */}
-                <div className="space-y-4">
-                  <h3 className="font-bold text-gray-900 px-2 text-lg">所有車站 (All Stops)</h3>
-                  <div className="space-y-3">
-                    {stops.map((stop, index) => {
-                      // Filter route ETAs for this stop
-                      let stopETAs: RouteETAItem[] = [];
-                      if (['KMB', 'LWB', 'CTB'].includes(selectedRoute.company || '')) {
-                          stopETAs = routeETAs
-                            .filter(eta => eta.seq === parseInt(stop.seq?.toString() || '-1'))
-                            .sort((a, b) => {
-                                const timeA = a.eta ? new Date(a.eta).getTime() : Number.MAX_SAFE_INTEGER;
-                                const timeB = b.eta ? new Date(b.eta).getTime() : Number.MAX_SAFE_INTEGER;
-                                return timeA - timeB;
-                            })
-                            .slice(0, 3);
-                      }
+        {/* Selected Route Info & Nearest Stop */}
+        <AnimatePresence>
+          {selectedRoute && (
+            <motion.div 
+              key="selected-route-info"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-8 z-10 relative"
+            >
+              <button
+                onClick={() => {
+                  setSelectedRoute(null);
+                  setStops([]);
+                  setNearestStopETA([]);
+                  setOtherBusesETA([]);
+                }}
+                className="text-[10px] font-mono font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 hover:text-white transition-colors"
+              >
+                <ChevronRight className="w-3 h-3 rotate-180" />
+                返回列表 (BACK TO LIST)
+              </button>
 
-                      return (
-                        <div 
-                          key={`${stop.stop}-${index}`} 
-                          className={`bg-white p-4 rounded-xl shadow-sm border border-gray-200 ${nearestStop?.stop === stop.stop ? 'ring-2 ring-slate-500 ring-offset-2' : ''}`}
-                        >
-                          <div className="flex items-start gap-3 mb-3">
-                            <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-sm font-mono font-bold text-gray-600 shrink-0">
-                              {index + 1}
+              <div className="bg-slate-900/80 backdrop-blur-md p-6 rounded-3xl border border-white/10 shadow-2xl">
+                <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-4">
+                      <div className="flex gap-1.5">
+                          {selectedRoute.companies && selectedRoute.companies.length > 0 ? (
+                              selectedRoute.companies.map(co => (
+                                  <div key={co} className={`${getCompanyColor(co)} text-white px-3 py-1.5 rounded-xl flex flex-col items-center justify-center min-w-[60px] shadow-lg`}>
+                                    <span className="text-[8px] font-mono font-black opacity-80">{co}</span>
+                                    <span className="text-2xl font-mono font-black tracking-tighter leading-none">{selectedRoute.route}</span>
+                                  </div>
+                              ))
+                          ) : (
+                              <div className={`${getCompanyColor(selectedRoute.company)} text-white px-3 py-1.5 rounded-xl flex flex-col items-center justify-center min-w-[60px] shadow-lg`}>
+                                <span className="text-[8px] font-mono font-black opacity-80">{selectedRoute.company}</span>
+                                <span className="text-2xl font-mono font-black tracking-tighter leading-none">{selectedRoute.route}</span>
+                              </div>
+                          )}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-xl font-black text-white leading-none">往 {selectedRoute.dest_tc}</span>
+                        <span className="text-[10px] font-mono text-slate-500 font-bold uppercase tracking-widest mt-1">TO {selectedRoute.dest_en}</span>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={(e) => toggleFavorite(selectedRoute, e)} 
+                      className="p-3 bg-white/5 rounded-2xl hover:bg-white/10 transition-colors border border-white/5"
+                    >
+                      <Star className={`w-6 h-6 ${isFavorite(selectedRoute) ? 'fill-amber-500 text-amber-500' : 'text-slate-700'}`} />
+                    </button>
+                </div>
+              </div>
+
+              {loadingStops ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-6">
+                  <div className="relative">
+                    <div className="w-16 h-16 border-4 border-blue-500/20 rounded-full" />
+                    <div className="absolute inset-0 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                  <div className="text-[10px] font-mono font-black text-slate-500 uppercase tracking-[0.4em]">正在初始化數據 (INITIALIZING DATA)...</div>
+                </div>
+              ) : (
+                <div className="space-y-8">
+                  {/* Nearest Stop Card */}
+                  <AnimatePresence mode="wait">
+                    {nearestStop ? (
+                      <motion.div
+                        key="nearest-stop"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-slate-900 text-white p-8 rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] relative overflow-hidden border border-white/10 group"
+                      >
+                        {/* Scanning Line Effect */}
+                        <div className="absolute inset-0 bg-[linear-gradient(transparent_0%,rgba(37,99,235,0.05)_50%,transparent_100%)] bg-[length:100%_4px] animate-[scan_4s_linear_infinite] pointer-events-none opacity-30" />
+                        
+                        {/* Hardware Details */}
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500/50 to-transparent" />
+                        <div className="absolute top-4 left-1/2 -translate-x-1/2 w-12 h-1 bg-white/10 rounded-full" />
+                        
+                        <div className="absolute top-0 right-0 p-6 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-transform duration-1000">
+                          <MapPin className="w-64 h-64 -mr-16 -mt-16" />
+                        </div>
+                        
+                        <div className="relative z-10">
+                          <div className="flex items-center justify-between mb-8">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center border border-blue-500/20">
+                                <MapPin className="w-4 h-4 text-blue-500" />
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="font-mono font-black tracking-[0.3em] uppercase text-[9px] text-blue-500">最近車站 (NEAREST STATION)</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-mono text-slate-500 font-bold uppercase tracking-widest">
+                                    LOC_ID: {nearestStop.stop.substring(0, 8)}
+                                  </span>
+                                  <span className="text-[8px] font-mono text-slate-700">|</span>
+                                  <span className="text-[8px] font-mono text-slate-600 uppercase">Telemetry Active</span>
+                                </div>
+                              </div>
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="font-bold text-gray-900 text-lg leading-tight">{stop.name_tc}</div>
-                              <div className="text-sm text-gray-500 truncate">{stop.name_en}</div>
+                            <div className="flex flex-col items-end">
+                              <div className="bg-slate-800/50 backdrop-blur-md border border-white/5 text-slate-300 px-3 py-1.5 rounded-xl text-[10px] font-mono font-black flex items-center gap-2">
+                                <Navigation className="w-3 h-3 text-blue-500" />
+                                {getDistance(
+                                  { latitude: userLocation?.latitude || 0, longitude: userLocation?.longitude || 0 },
+                                  { latitude: parseFloat(nearestStop.lat), longitude: parseFloat(nearestStop.long) }
+                                )}M
+                              </div>
+                              <span className="text-[7px] font-mono text-slate-700 mt-1 uppercase tracking-tighter">Distance Vector</span>
                             </div>
-                            {nearestStop?.stop === stop.stop && (
-                              <div className="text-slate-500 shrink-0 bg-slate-50 p-1.5 rounded-lg">
-                                <MapPin className="w-5 h-5" />
+                          </div>
+                          
+                          <h3 className="text-3xl font-black mb-2 tracking-tighter">{nearestStop.name_tc}</h3>
+                          <p className="text-slate-500 text-[11px] mb-10 font-mono font-bold uppercase tracking-widest">{nearestStop.name_en}</p>
+
+                          <div className="space-y-4">
+                            {loadingETA ? (
+                              <div className="space-y-4">
+                                <div className="animate-pulse h-20 bg-white/5 rounded-2xl w-full border border-white/5"></div>
+                                <div className="animate-pulse h-20 bg-white/5 rounded-2xl w-full border border-white/5"></div>
+                              </div>
+                            ) : nearestStopETA.length > 0 ? (
+                              nearestStopETA.map((eta, idx) => (
+                                <motion.div 
+                                  key={idx} 
+                                  initial={{ opacity: 0, x: -10 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  transition={{ delay: idx * 0.1 }}
+                                  className="flex justify-between items-center bg-white/[0.03] p-6 rounded-3xl border border-white/5 hover:bg-white/[0.05] transition-all group/item"
+                                >
+                                  <div>
+                                    <div className="flex items-center gap-3 mb-2">
+                                      <span className={`text-[8px] font-mono font-black px-2 py-0.5 rounded text-white ${getCompanyColor(eta.co)}`}>
+                                        {eta.co}
+                                      </span>
+                                      <div className="text-[10px] font-mono text-slate-500 font-bold uppercase tracking-widest">
+                                        {eta.eta ? new Date(eta.eta).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}) : '---'}
+                                      </div>
+                                    </div>
+                                    <div className="flex items-baseline gap-2">
+                                      <span className="text-5xl font-mono font-black text-white tracking-tighter">
+                                        {formatTime(eta.eta).split(' ')[0]}
+                                      </span>
+                                      <span className="text-xs font-mono font-black text-slate-500 uppercase tracking-[0.2em]">
+                                        {formatTime(eta.eta).includes('Arriving') ? 'ARR' : 'MIN'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  {eta.rmk_tc && (
+                                    <div className="bg-blue-500/10 text-blue-400 px-4 py-2 rounded-2xl text-[9px] font-mono font-black uppercase border border-blue-500/20 tracking-widest">
+                                      {eta.rmk_tc}
+                                    </div>
+                                  )}
+                                </motion.div>
+                              ))
+                            ) : (
+                              <div className="text-slate-600 text-[10px] font-mono font-black uppercase tracking-[0.3em] bg-white/[0.02] p-10 rounded-3xl text-center border border-white/5 border-dashed">
+                                暫無實時數據 (NO TELEMETRY DATA)
                               </div>
                             )}
                           </div>
 
-                          {/* ETAs Grid */}
-                          {(['KMB', 'LWB', 'CTB'].includes(selectedRoute.company || '')) && (
-                              <div className="grid grid-cols-3 gap-2 pl-11">
-                                {stopETAs.length > 0 ? (
-                                  stopETAs.map((eta, i) => (
-                                    <div key={i} className="bg-gray-50 p-2 rounded-lg text-center border border-gray-100">
-                                      <div className="text-blue-600 font-bold font-mono text-sm flex flex-col items-center">
-                                        <span>{formatTime(eta.eta)}</span>
-                                        <span className="text-sm font-normal text-gray-400 mt-1">
-                                          {getCompanyName(eta.co)}
+                          {/* Other Buses Section */}
+                          {otherBusesETA.length > 0 && (
+                            <div className="mt-10 pt-10 border-t border-white/5">
+                              <div className="flex items-center gap-3 text-slate-500 mb-6">
+                                <Bus className="w-4 h-4" />
+                                <span className="font-mono font-black tracking-[0.3em] uppercase text-[9px]">其他路線 (OTHER ROUTES)</span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-4">
+                                {otherBusesETA.slice(0, 4).map((eta, idx) => (
+                                  <div key={idx} className="bg-white/[0.02] rounded-2xl p-4 border border-white/5 hover:bg-white/[0.05] transition-all group/other">
+                                    <div className="flex items-center justify-between mb-3">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-xl font-mono font-black text-white tracking-tighter">{eta.route}</span>
+                                        <div className="h-3 w-px bg-white/10" />
+                                        <span className={`text-[7px] font-mono font-black px-1.5 py-0.5 rounded text-white ${getCompanyColor(eta.co)}`}>
+                                          {eta.co}
                                         </span>
                                       </div>
-                                      <div className="text-[10px] text-gray-400 mt-0.5">
-                                        {eta.eta ? new Date(eta.eta).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}
-                                      </div>
                                     </div>
-                                  ))
-                                ) : (
-                                  <div className="col-span-3 text-sm text-gray-400 italic py-2 bg-gray-50 rounded-lg text-center">
-                                    暫時沒有班次資訊 (No ETA)
+                                    <div className="flex items-baseline gap-1">
+                                      <div className="text-blue-500 font-mono font-black text-sm tracking-tighter">
+                                        {formatTime(eta.eta).split(' ')[0]}
+                                      </div>
+                                      <span className="text-[8px] font-mono font-black text-slate-600 uppercase">MIN</span>
+                                    </div>
+                                    <div className="text-[8px] font-mono text-slate-600 truncate font-bold uppercase tracking-widest">
+                                      TO {eta.dest_en || '---'}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <button 
+                            onClick={() => fetchETA(nearestStop!)}
+                            className="mt-10 w-full py-5 bg-blue-600 hover:bg-blue-500 text-white rounded-[1.5rem] flex items-center justify-center gap-3 transition-all active:scale-[0.98] shadow-[0_20px_40px_-12px_rgba(37,99,235,0.4)] font-mono font-black text-xs uppercase tracking-widest"
+                          >
+                            <RefreshCw className={`w-4 h-4 ${loadingETA ? 'animate-spin' : ''}`} />
+                            同步數據 (SYNC DATA)
+                          </button>
+                        </div>
+                      </motion.div>
+                    ) : (
+                      !userLocation && (
+                        <motion.div 
+                          key="location-error"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="p-8 bg-amber-500/10 text-amber-500 rounded-3xl text-sm border border-amber-500/20 flex items-center gap-6"
+                        >
+                          <div className="bg-amber-500/20 p-3 rounded-2xl">
+                            <MapPin className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <div className="font-mono font-black uppercase tracking-widest">定位錯誤 (LOCATION ERROR)</div>
+                            <div className="text-[10px] font-mono opacity-70 mt-1 uppercase tracking-wider">請開啟 GPS 定位以獲取最近車站數據 (ENABLE GPS)</div>
+                          </div>
+                        </motion.div>
+                      )
+                    )}
+                  </AnimatePresence>
+
+                  {/* All Stops List */}
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between px-2">
+                      <div className="flex flex-col">
+                        <h3 className="font-mono font-black text-slate-400 text-[10px] uppercase tracking-[0.4em] flex items-center gap-3">
+                          <MapIcon className="w-4 h-4 text-blue-500" />
+                          車站序列 (STATION SEQUENCE)
+                        </h3>
+                        <span className="text-[7px] font-mono text-slate-600 uppercase mt-1 tracking-widest">Node Path Telemetry</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="h-4 w-px bg-white/10" />
+                        <span className="text-[9px] font-mono font-black text-slate-500 bg-white/5 border border-white/5 px-3 py-1 rounded-full uppercase tracking-widest">{stops.length} NODES</span>
+                      </div>
+                    </div>
+                    
+                    <div className="relative px-1">
+                      {/* Vertical Line */}
+                      <div className="absolute left-[31px] top-6 bottom-6 w-px bg-white/5 z-0" />
+                      
+                      <div className="space-y-4 relative z-10">
+                        {stops.map((stop, index) => {
+                          // Filter route ETAs for this stop
+                          let stopETAs: RouteETAItem[] = [];
+                          if (['KMB', 'LWB', 'CTB'].includes(selectedRoute.company || '')) {
+                              stopETAs = routeETAs
+                                .filter(eta => eta.seq === parseInt(stop.seq?.toString() || '-1'))
+                                .sort((a, b) => {
+                                    const timeA = a.eta ? new Date(a.eta).getTime() : Number.MAX_SAFE_INTEGER;
+                                    const timeB = b.eta ? new Date(b.eta).getTime() : Number.MAX_SAFE_INTEGER;
+                                    return timeA - timeB;
+                                })
+                                .slice(0, 3);
+                          }
+
+                          const isNearest = nearestStop?.stop === stop.stop;
+
+                          return (
+                            <motion.div 
+                              key={`${stop.stop}-${index}`} 
+                              initial={{ opacity: 0, x: -10 }}
+                              whileInView={{ opacity: 1, x: 0 }}
+                              viewport={{ once: true }}
+                              className={`bg-slate-900/50 backdrop-blur-sm p-6 rounded-3xl border transition-all ${isNearest ? 'border-blue-500/50 bg-blue-500/5' : 'border-white/5'}`}
+                            >
+                              <div className="flex items-start gap-6 relative">
+                                {isNearest && (
+                                  <div className="absolute -left-8 top-1/2 -translate-y-1/2 w-4 h-[1px] bg-blue-500" />
+                                )}
+                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-[10px] font-mono font-black shrink-0 z-10 border transition-all ${isNearest ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20' : 'bg-slate-900 text-slate-600 border-white/10'}`}>
+                                  {String(index + 1).padStart(2, '0')}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <div className="font-black text-white text-xl leading-tight tracking-tighter">{stop.name_tc}</div>
+                                    {isNearest && (
+                                      <div className="flex items-center gap-1 px-1.5 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded text-[7px] font-mono font-black text-blue-500 uppercase tracking-tighter">
+                                        <div className="w-1 h-1 bg-blue-500 rounded-full animate-pulse" />
+                                        CURRENT
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="text-[10px] font-mono text-slate-500 font-bold uppercase tracking-widest truncate">{stop.name_en}</div>
+                                  
+                                  {stopETAs.length > 0 && (
+                                    <div className="mt-6 flex flex-wrap gap-2">
+                                      {stopETAs.map((eta, idx) => (
+                                        <div key={idx} className="bg-white/5 border border-white/5 px-3 py-2 rounded-xl flex flex-col items-center min-w-[70px]">
+                                          <span className="text-[10px] font-mono font-black text-emerald-500 tracking-tighter">
+                                            {formatTime(eta.eta).split(' ')[0]}
+                                          </span>
+                                          <span className="text-[7px] font-mono font-black text-slate-600 uppercase tracking-widest">
+                                            {formatTime(eta.eta).includes('Arriving') ? 'ARR' : 'MIN'}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                                {isNearest && (
+                                  <div className="text-blue-500 shrink-0 bg-blue-500/10 p-3 rounded-2xl border border-blue-500/20">
+                                    <MapPin className="w-5 h-5" />
                                   </div>
                                 )}
                               </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </>
-            )}
-          </div>
-        )}
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
     </div>
   );

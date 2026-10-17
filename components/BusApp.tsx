@@ -23,6 +23,10 @@ export default function BusApp() {
   const [error, setError] = useState('');
   const [favoriteRoutes, setFavoriteRoutes] = useState<Route[]>([]);
 
+  const AUTO_REFRESH_SECONDS = 25;
+  const [countdown, setCountdown] = useState(AUTO_REFRESH_SECONDS);
+  const [currentTime, setCurrentTime] = useState(Date.now());
+
   // Load favorites from localStorage
   useEffect(() => {
     const stored = localStorage.getItem('favoriteRoutes');
@@ -347,22 +351,71 @@ export default function BusApp() {
     setLoadingETA(false);
   }, [selectedRoute]);
 
-  // Fetch ETA for nearest stop
+  // Update currentTime every 1 second so time remaining automatically recalculates
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleSync = useCallback(async () => {
+    if (!nearestStop || !selectedRoute) return;
+    setCountdown(AUTO_REFRESH_SECONDS);
+    await fetchETA(nearestStop);
+
+    // Also refresh routeETAs for the all-stops list
+    const companies = selectedRoute.companies || [selectedRoute.company!];
+    if (companies.includes('KMB') || companies.includes('LWB')) {
+      const kmbCo = companies.find(c => c === 'KMB' || c === 'LWB');
+      if (kmbCo) {
+        try {
+          const etas = await getRouteETA({ ...selectedRoute, company: kmbCo });
+          const mapped = etas.map(e => ({ ...e, co: kmbCo }));
+          const filtered = mapped.filter(eta => {
+            const bound = selectedRoute.companyBounds?.[kmbCo] || selectedRoute.bound;
+            return !eta.dir || eta.dir === bound;
+          });
+          setRouteETAs(filtered);
+        } catch (e) {
+          console.error('Error refreshing route ETAs:', e);
+        }
+      }
+    }
+  }, [nearestStop, selectedRoute, fetchETA, AUTO_REFRESH_SECONDS]);
+
+  // Fetch ETA on initial stop load and reset countdown
   useEffect(() => {
     if (nearestStop && selectedRoute) {
-      // Use setTimeout to avoid synchronous state update warning
+      setCountdown(AUTO_REFRESH_SECONDS);
       const timer = setTimeout(() => {
         fetchETA(nearestStop);
       }, 0);
       return () => clearTimeout(timer);
     }
-  }, [nearestStop, selectedRoute, fetchETA]);
+  }, [nearestStop, selectedRoute, fetchETA, AUTO_REFRESH_SECONDS]);
+
+  // Automatic refresh interval: countdown every 1s, triggers sync at 0s
+  useEffect(() => {
+    if (!selectedRoute || !nearestStop) return;
+
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          handleSync();
+          return AUTO_REFRESH_SECONDS;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [selectedRoute, nearestStop, handleSync, AUTO_REFRESH_SECONDS]);
 
   const formatTime = (timestamp: string | null) => {
     if (!timestamp) return '---';
     const date = new Date(timestamp);
-    const now = new Date();
-    const diff = Math.floor((date.getTime() - now.getTime()) / 60000);
+    const diff = Math.floor((date.getTime() - currentTime) / 60000);
     if (diff <= 0) return '即將到達 (Arriving)';
     return `${diff} 分鐘 (min)`;
   };
@@ -810,11 +863,47 @@ export default function BusApp() {
                           )}
 
                           <button 
-                            onClick={() => fetchETA(nearestStop!)}
-                            className="mt-10 w-full py-5 bg-blue-600 hover:bg-blue-500 text-white rounded-[1.5rem] flex items-center justify-center gap-3 transition-all active:scale-[0.98] shadow-[0_20px_40px_-12px_rgba(37,99,235,0.4)] font-mono font-black text-xs uppercase tracking-widest"
+                            onClick={handleSync}
+                            disabled={loadingETA}
+                            className="mt-8 w-full p-4 bg-slate-900/90 hover:bg-slate-800/90 rounded-2xl border border-blue-500/30 hover:border-blue-400/60 transition-all duration-300 relative overflow-hidden group shadow-lg shadow-black/40 text-left active:scale-[0.99] cursor-pointer"
+                            title="已啟動自動定時更新，點擊亦可立即同步"
                           >
-                            <RefreshCw className={`w-4 h-4 ${loadingETA ? 'animate-spin' : ''}`} />
-                            同步數據 (SYNC DATA)
+                            {/* Live Progress Bar at the bottom */}
+                            <div className="absolute bottom-0 left-0 h-1 bg-slate-800/80 w-full">
+                              <div 
+                                className="h-full bg-gradient-to-r from-blue-500 via-cyan-400 to-emerald-400 transition-all duration-1000 ease-linear shadow-[0_0_8px_rgba(56,189,248,0.8)]"
+                                style={{ width: `${((AUTO_REFRESH_SECONDS - countdown) / AUTO_REFRESH_SECONDS) * 100}%` }}
+                              />
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="relative flex items-center justify-center w-3 h-3">
+                                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping absolute opacity-75" />
+                                  <div className="w-2 h-2 rounded-full bg-emerald-400 relative" />
+                                </div>
+                                <div className="flex flex-col">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[11px] font-mono font-black tracking-widest text-white uppercase">
+                                      自動即時更新 (AUTO-REFRESH)
+                                    </span>
+                                    <span className="text-[8px] font-mono font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded tracking-widest">
+                                      LIVE
+                                    </span>
+                                  </div>
+                                  <span className="text-[9px] font-mono text-slate-400 tracking-wider mt-0.5">
+                                    {loadingETA ? '正在更新數據 (UPDATING...)' : `下次自動更新：${countdown}秒 (NEXT IN ${countdown}S)`}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2 bg-blue-600/20 group-hover:bg-blue-600/40 border border-blue-500/30 px-3 py-1.5 rounded-xl transition-colors">
+                                <RefreshCw className={`w-3.5 h-3.5 text-blue-400 ${loadingETA ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
+                                <span className="text-[10px] font-mono font-bold text-blue-300 uppercase tracking-wider">
+                                  {loadingETA ? '更新中' : '立即刷新'}
+                                </span>
+                              </div>
+                            </div>
                           </button>
                         </div>
                       </motion.div>
